@@ -2,16 +2,6 @@ _schema-version: "3.1"
 ID: cpapp
 description: A simple CAP project.
 version: 1.0.0
-parameters:
-  deploy_mode: html5-repo
-  enable-parallel-deployments: true
-build-parameters:
-  before-all:
-  - builder: custom
-    commands:
-    - npm install --production
-    - npx -p @sap/cds-dk cds build --production
-    - npx rimraf gen/db/src/gen/data
 modules:
 - name: cpapp-srv
   type: nodejs
@@ -19,7 +9,6 @@ modules:
   requires:
   - name: cpapp-db
   - name: cpapp-uaa
-  - name: cpapp-logs
   provides:
   - name: srv-api
     properties:
@@ -32,7 +21,6 @@ modules:
   requires:
   - name: cpapp-db
   - name: cpapp-uaa
-  - name: cpapp-logs
   parameters:
     buildpack: nodejs_buildpack
 - name: cpapp-destinations
@@ -111,11 +99,6 @@ modules:
     - npm run build:cf
     supported-platforms: []
 resources:
-- name: cpapp-logs
-  type: org.cloudfoundry.managed-service
-  parameters:
-    service: application-logs
-    service-plan: lite
 - name: cpapp-db
   type: com.sap.xs.hdi-container
   parameters:
@@ -126,26 +109,24 @@ resources:
 - name: cpapp-uaa
   type: org.cloudfoundry.managed-service
   parameters:
-    service: xsuaa
-    service-plan: application
-    path: ./xs-security.json
     config:
-      xsappname: cpapp-${space} 
-      tenant-mode: dedicated
       role-collections:
-      - name: RiskManager-${space}
-        description: Manage Risks
+      - description: Manage Risks
+        name: RiskManager-${space}
         role-template-references:
         - $XSAPPNAME.RiskManager
-      - name: RiskViewer-${space}
-        description: View Risks
+      - description: View Risks
+        name: RiskViewer-${space}
         role-template-references:
         - $XSAPPNAME.RiskViewer
+      tenant-mode: dedicated
+      xsappname: cpapp-${space}
+    path: ./xs-security.json
+    service: xsuaa
+    service-plan: application
 - name: cpapp-destination
   type: org.cloudfoundry.managed-service
   parameters:
-    service: destination
-    service-plan: lite
     config:
       HTML5Runtime_enabled: true
       init_data:
@@ -158,8 +139,20 @@ resources:
             URL: https://ui5.sap.com
           existing_destinations_policy: update
       version: 1.0.0
+    service: destination
+    service-plan: lite
 - name: cpapp-html5-repo-host
   type: org.cloudfoundry.managed-service
   parameters:
     service: html5-apps-repo
     service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm install --production
+    - npx -p @sap/cds-dk cds build --production
+    - npx rimraf gen/db/src/gen/data
